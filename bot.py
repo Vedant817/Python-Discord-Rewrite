@@ -1,4 +1,6 @@
 import discord
+import time
+import asyncio
 
 def read_token():
     with open('token.txt', 'r') as f:
@@ -11,14 +13,35 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+async def update_stats():
+    await client.wait_until_ready()
+    global messages, joined
+    while not client.is_closed():
+        try:
+            with open("stats.txt", "a") as f:
+                f.write(f"Time: {int(time.time())}, Messages: {messages}, Members Joined: {joined} \n")
+            messages = 0
+            joined = 0
+
+            await asyncio.sleep(5)
+        except Exception as e:
+            print(e)
+            await asyncio.sleep(5)
+
+
+
 @client.event
 async def on_member_join(member):
+    global joined
+    joined+=1
     for channel in member.server.channels:
         if str(channel) == "general":
             await client.send_message(f"Welcome to the server {member.mention}")
 
 @client.event
 async def on_message(message):
+    global messages
+    messages+=1
     id = client.get_guild(1124087027487490168)
     valid_users = ['.vedantmahajan']
     channels = ["commands"]
@@ -31,4 +54,5 @@ async def on_message(message):
     else:
         print(f"User: {message.author} tried to Command {message.content} in channel {message.channel}")
 
+client.loop.create_task(update_stats()) #? This is added to apply any background task in the channel.
 client.run(token)
